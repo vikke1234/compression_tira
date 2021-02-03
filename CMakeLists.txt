@@ -10,9 +10,9 @@ find_package(CxxTest)
 if(CXXTEST_FOUND)
   include_directories(${CXXTEST_INCLUDE_DIR})
   enable_testing()
-  CXXTEST_ADD_TEST(unittest_huffman huffmantree.cpp
-    ${PROJECT_SOURCE_DIR}/src/tree.cpp ${PROJECT_SOURCE_DIR}/headers/tests/HuffmanTreeTests.h)
+  CXXTEST_ADD_TEST(unittest_heap heaptest.cpp
+    ${PROJECT_SOURCE_DIR}/src/heap.cpp ${PROJECT_SOURCE_DIR}/headers/tests/HeapTest.h)
 endif(CXXTEST_FOUND)
 
-add_executable(tira src/main.cpp src/huffman.cpp src/tree.cpp)
+add_executable(tira src/main.cpp src/huffman.cpp src/tree.cpp src/heap.cpp)
 target_include_directories(tira PRIVATE headers)
