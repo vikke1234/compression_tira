@@ -20,3 +20,20 @@ The following should go both ways, to allow compression and decompression.
 Some data (e.g. a picture, text or just some other data)
 ### Output
 Compressed data
+
+# File formats
+## Huffman
+```cpp
+struct {
+    uint8_t tree_size;
+      struct Node {
+          uint8_t byte;
+          uint8_t len;
+          uint16_t path;
+      }[tree_size];
+    uint64_t total_length;
+    uint8_t data[total_length];
+};
+```
+
+## Lempel ziv
