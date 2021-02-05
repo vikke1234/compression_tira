@@ -3,19 +3,31 @@
 #include <climits>
 #include <cstdint>
 
+enum node_type_t {
+      DATA,
+      FILLER
+};
 /**
  * @brief a node in the priority tree
  */
 struct Node {
   std::uint8_t byte = 0;
   std::uint64_t freq = 0;
+  node_type_t type = DATA;
   Node *left = nullptr, *right = nullptr;
   Node(std::uint8_t byte, std::uint64_t freq) {
     this->byte = byte;
     this->freq = freq;
   }
 
-  bool isLeaf(void) { return left == nullptr && right == nullptr; }
+  Node(std::uint8_t byte, std::uint64_t freq, node_type_t type) {
+    this->byte = 0; /* doesn't really matter what this is since
+                       it will be checked from the type when building
+                       the code table. */
+    this->freq = freq;
+    this->type = type;
+  }
+
   bool operator<(Node *node) { return this->freq < node->freq; }
 };
 
@@ -46,6 +58,7 @@ public:
   void insert(Node *node);
 
   Node *operator[](std::uint8_t index) { return this->nodes[index]; }
+  std::uint8_t get_index(void) { return this->index; }
 
 private:
   /**
@@ -64,11 +77,15 @@ private:
   void swap(std::uint8_t smallest, std::uint8_t index) {
     Node *swap_node = this->nodes[smallest];
     this->nodes[smallest] = this->nodes[index];
-    this->nodes[index] = this->nodes[smallest];
+    this->nodes[index] = swap_node;
+  }
 
-    std::uint32_t swap_path = this->paths[smallest];
-    this->paths[smallest] = this->paths[index];
-    this->paths[index] = swap_path;
+  /**
+   * @brief checks if a given index is a leaf
+   * @return bool
+   */
+  bool isLeaf(std::uint8_t index) {
+    return this->nodes[index * 2] == nullptr && this->nodes[index * 2 + 1];
   }
 };
 

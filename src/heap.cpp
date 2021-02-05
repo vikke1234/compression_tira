@@ -3,6 +3,7 @@
 Node *Heap::pop(void) {
   Node *node = this->nodes[0];
   this->nodes[0] = this->nodes[this->index - 1];
+  this->nodes[this->index - 1] = nullptr;
   this->index--;
   this->heapify(0);
   return node;
@@ -10,7 +11,6 @@ Node *Heap::pop(void) {
 
 void Heap::insert(Node *node) {
   std::uint8_t i = this->index++;
-  std::uint32_t path = 0;
   while (i && node < this->nodes[(i - 1) / 2]) {
     this->nodes[i] = this->nodes[(i - 1) / 2];
     i = (i - 1) / 2;
