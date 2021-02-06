@@ -16,4 +16,4 @@ Documentation will be written in English.
 [Week 1](weekly_reports/week1.md)
 [Week 2](weekly_reports/week2.md)
 
-### Test coverage
+[Test coverage](index.html)
