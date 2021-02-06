@@ -2,32 +2,33 @@
 
 Node *Heap::pop(void) {
   Node *node = this->nodes[0];
-  this->nodes[0] = this->nodes[this->index - 1];
-  this->nodes[this->index - 1] = nullptr;
-  this->index--;
+  this->nodes[0] = this->nodes[this->size - 1];
+  this->nodes[this->size - 1] = nullptr;
+  this->size--;
   this->heapify(0);
   return node;
 }
 
 void Heap::insert(Node *node) {
-  std::uint8_t i = this->index++;
-  while (i && node < this->nodes[(i - 1) / 2]) {
-    this->nodes[i] = this->nodes[(i - 1) / 2];
+  std::uint8_t i = this->size++;
+  this->nodes[i] = node;
+  while (i && *node < *this->nodes[(i - 1) / 2]) {
+    this->swap(i, (i - 1) / 2);
     i = (i - 1) / 2;
   }
-  this->nodes[i] = node;
 }
+
 
 void Heap::heapify(const std::uint8_t index) {
   std::uint8_t smallest = index;
-  std::uint8_t left = index * 2 + 1;
-  std::uint8_t right = index * 2 + 2;
+  std::uint8_t left = index * 2;
+  std::uint8_t right = index * 2 + 1;
 
-  if (left < this->index && this->nodes[left] < this->nodes[smallest]) {
+  if (left < this->size && this->nodes[left] < this->nodes[smallest]) {
     smallest = left;
   }
 
-  if (right < this->index && this->nodes[right] < this->nodes[smallest]) {
+  if (right < this->size && this->nodes[right] < this->nodes[smallest]) {
     smallest = right;
   }
 

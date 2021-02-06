@@ -35,14 +35,14 @@ struct Node {
       delete this->right;
     }
   }
-  bool operator<(Node *node) { return this->freq < node->freq; }
+  friend bool operator<(const Node &left, const Node &right) { return left.freq < right.freq; }
 };
 
 /**
  * @brief the priority queue for the huffman algorithm
  */
 class Heap {
-  std::uint8_t index = 0; /* doesn't need to be larger than 8 bits since
+  std::uint8_t size = 0; /* doesn't need to be larger than 8 bits since
                              the array is at most UCHAR_MAX */
   Node *nodes[UCHAR_MAX] = {0};
   std::uint32_t paths[UCHAR_MAX] = {0};
@@ -65,9 +65,9 @@ public:
   void insert(Node *node);
 
   Node *operator[](std::uint8_t index) { return this->nodes[index]; }
-  std::uint8_t get_index(void) { return this->index; }
+  std::uint8_t get_size(void) { return this->size; }
   ~Heap() {
-    for (std::uint8_t i = 0; i < this->index; i++) {
+    for (std::uint8_t i = 0; i < this->size; i++) {
       if (this->nodes[i] != nullptr) {
         delete this->nodes[i];
       }
