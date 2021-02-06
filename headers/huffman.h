@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "../headers/tree.h"
 
 /**
  * @brief      huffman compression for a file
@@ -13,9 +12,14 @@
  *
  * @param      filename file to compress
  *
- * @return     unsigned char *
+ * @return     void
  */
 extern void huffman_compression(const std::string &filename);
-
+/**
+ * @brief decompresses a file huffman compressed filename
+ * @param filename of the file
+ * @return void
+ */
+extern void huffman_decompress(const std::string &filename);
 
 #endif // HUFFMAN_H
