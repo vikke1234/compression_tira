@@ -27,7 +27,14 @@ struct Node {
     this->freq = freq;
     this->type = type;
   }
-
+  ~Node() {
+    if (this->left != nullptr) {
+      delete this->left;
+    }
+    if(this->right != nullptr) {
+      delete this->right;
+    }
+  }
   bool operator<(Node *node) { return this->freq < node->freq; }
 };
 
@@ -59,7 +66,13 @@ public:
 
   Node *operator[](std::uint8_t index) { return this->nodes[index]; }
   std::uint8_t get_index(void) { return this->index; }
-
+  ~Heap() {
+    for (std::uint8_t i = 0; i < this->index; i++) {
+      if (this->nodes[i] != nullptr) {
+        delete this->nodes[i];
+      }
+    }
+  }
 private:
   /**
    * @brief orders the nodes correctly
