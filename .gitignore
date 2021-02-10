@@ -148,3 +148,4 @@ CMakeUserPresets.json
 *-prefix/
 
 build/
+.ccls*
