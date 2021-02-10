@@ -25,7 +25,7 @@ union path_t {
 };
 
 namespace fs = std::filesystem;
-static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
+static void write_to_file(std::uint8_t *data, std::uint8_t tree_size,
                           const std::size_t file_size, path_t *paths,
                           const std::string &filename);
 
@@ -62,7 +62,7 @@ inline std::uint16_t reverse_bits(std::uint16_t s) {
  * @details left in the tree will be a 0, right will be a 1
  * NOTE: the paths will be in reverse order, should probably be changed
  */
-static void build_codes(const Node *node, path_t (&paths)[UCHAR_MAX],
+static void build_codes(const Node *const node, path_t (&paths)[UCHAR_MAX],
                         const std::uint16_t path, const std::uint8_t index) {
   if (node == nullptr) {
     return;
@@ -94,7 +94,7 @@ extern void huffman_compression(const std::string &filename) {
   const std::size_t file_size = fs::file_size(filename);
   std::uint8_t *data = new std::uint8_t[file_size];
   /* this is to know how many nodes will exist when writing to file */
-  std::uint8_t uniques = 0;
+  std::uint8_t tree_size = 0;
   Heap heap;
 
   /* got tired of trying to implement the c++ way...
@@ -105,7 +105,7 @@ extern void huffman_compression(const std::string &filename) {
 
   for (std::size_t i = 0; i < file_size; i++) {
     if (!frequencies[data[i]]) {
-      uniques++;
+      tree_size++;
     }
     frequencies[data[i]]++;
   }
@@ -130,7 +130,10 @@ extern void huffman_compression(const std::string &filename) {
   }
   root = heap.pop();
   build_codes(root, paths, 0, 0);
-  write_to_file(data, uniques, file_size, paths, filename);
+  for (std::uint8_t i = 0; i < UCHAR_MAX; i++) {
+    paths[i].path = reverse_bits(paths[i].path) >> (16 - paths[i].len);
+  }
+  write_to_file(data, tree_size, file_size, paths, filename);
   delete root;
   delete[] data;
 }
@@ -147,15 +150,15 @@ extern void huffman_compression(const std::string &filename) {
  * to get the left over bits and shift it to the most significant bit and OR it
  * in.
  */
-static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
+static void write_to_file(std::uint8_t *data, std::uint8_t tree_size,
                           const std::size_t file_size, path_t *paths,
                           const std::string &filename) {
   FILE *output = fopen(std::string(filename + ".huff").c_str(), "wb");
-  fwrite(&uniques, sizeof(uniques), 1, output);
+  fwrite(&tree_size, sizeof(tree_size), 1, output);
   for (std::uint8_t i = 0; i < UCHAR_MAX; i++) {
     if (paths[i].len != 0) {
       std::cout << "path: " << std::bitset<8>(paths[i].path)
-                << ", character: " << paths[i].character
+                << ", character: 0x" << std::hex << +paths[i].character
                 << ", len: " << +paths[i].len << "\n";
       fwrite(&paths[i], sizeof(path_t), 1, output);
     }
@@ -171,7 +174,6 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
   std::uint8_t bit_iterator = 0;
   /* the entire array won't be written, only total_bits/8*/
   std::uint8_t *compressed_data = new std::uint8_t[file_size];
-  /* the reversed path  */
   std::uint8_t to_write = 0;
   std::size_t compressed_iterator = 0;
   const std::uint8_t INIT_BITS = CHAR_BIT;
@@ -182,19 +184,16 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
     path_t path = paths[data[i]];
     total_bits += path.len;
     std::uint8_t len = path.len;
-    /* since the bits are in reverse order from when building the path we
-     * reverse them */
-    std::uint16_t reversed = reverse_bits(path.path) >> (16 - path.len);
     /* warning scary bit stuff... tl;dr it will put the paths into as few bytes
      * as possible */
     if (bits_left - len >= 0) {
-      to_write |= reversed << (bits_left - len);
+      to_write |= path.path << (bits_left - len);
       bits_left -= len;
     } else {
       std::uint8_t diff = std::abs((long)(bits_left - len));
       std::uint16_t mask = build_mask(diff);
       bits_left = INIT_BITS;
-      to_write |= reversed >> (len - diff);
+      to_write |= path.path >> (len - diff);
       compressed_data[compressed_iterator++] = to_write;
       len -= diff;
       /* this is because it might have to be written into 3 bytes if it doesn't
@@ -207,7 +206,7 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
          * shifted up into the 3rd byte
          * this is necessary only when the path won't fit into 2 bytes
          */
-        std::uint8_t high = reversed >> CHAR_BIT, low = reversed & 0xff;
+        std::uint8_t high = path.path >> CHAR_BIT, low = path.path & 0xff;
         std::uint8_t leftover = len - INIT_BITS;
         high <<= INIT_BITS - leftover;
         high |= low >> leftover;
@@ -215,7 +214,7 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
         to_write = low << (INIT_BITS - leftover);
         bits_left = INIT_BITS - leftover;
       } else {
-        to_write = (reversed & mask) << (INIT_BITS - len);
+        to_write = (path.path & mask) << (INIT_BITS - len);
         bits_left = INIT_BITS - len;
       }
     }
@@ -240,7 +239,7 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
   delete[] compressed_data;
 }
 
-void huffman_decompress(std::string &filename) {
+extern void huffman_decompress(const std::string &filename) {
   FILE *fp = fopen(filename.c_str(), "rb");
   std::uint8_t tree_size = 0;
   fread(&tree_size, sizeof(tree_size), 1, fp);
@@ -254,7 +253,8 @@ void huffman_decompress(std::string &filename) {
   std::uint8_t *data = new std::uint8_t[data_size];
   fseek(fp, data_start, SEEK_SET);
   fread(data, sizeof(std::uint8_t), data_size, fp);
-
+  fclose(fp);
+  std::printf("tree size: %d, total bits: %lu\n", tree_size, total_bits);
   /*
     build the tree, slow as shit to make it though...
     luckily it's not that large...
@@ -264,24 +264,61 @@ void huffman_decompress(std::string &filename) {
   for (int i = 0; i < tree_size; i++) {
     path_t path = paths[i];
     Node *node = root;
+    std::cout << "Building tree for: 0x" << std::hex << +path.character << ", path: " << std::bitset<16>(path.path) << "\n";
+    std::uint8_t len = path.len;
     for (int i = 0; i < path.len; i++) {
-      if (path.path & 1 << (path.len - 1)) {
-        if (node->left == nullptr) {
-          node->left = new Node(0, 0, node_type_t::FILLER);
-        }
-        node = node->left;
-      } else {
+      if (path.path & (1 << (len - 1))) {
         if (node->right == nullptr) {
           node->right = new Node(0, 0, node_type_t::FILLER);
         }
         node = node->right;
+      } else {
+        if (node->left == nullptr) {
+          node->left = new Node(0, 0, node_type_t::FILLER);
+        }
+        node = node->left;
       }
+      len--;
     }
     node->byte = path.character;
     node->type = node_type_t::DATA;
+    std::cout << "\n";
   }
 
-  std::uint8_t bit_iterator = CHAR_BIT;
+  FILE *uncompressed = fopen("output", "wb");
+  std::size_t data_iterator = 0;
+  Node *copy = root;
   while (total_bits > 0) {
+    std::uint8_t byte = data[data_iterator++];
+    for (std::int16_t index = CHAR_BIT - 1; index >= 0 && total_bits > 0; index--) {
+      if (byte & (1 << index)) {
+        if (copy != nullptr) {
+          copy = copy->right;
+          std::cout << 1;
+        }
+      }
+      else {
+        if (copy != nullptr) {
+          copy = copy->left;
+          std::cout << 0;
+        }
+      }
+      total_bits--;
+      if (copy != nullptr) {
+        if (copy->type == node_type_t::DATA) {
+          std::cout << "\n";
+          std::cout << "found: 0x" << std::hex << +copy->byte << "\n";
+          fwrite(&copy->byte, sizeof copy->byte, 1, uncompressed);
+          copy = root;
+          /*
+            it's PROBABLY about as fast to write like this as it would be
+            to copy to a buffer and write it all at once, dunno
+          */
+        }
+      } else {
+        std::cerr << "Error could not traverse tree\n";
+        return;
+      }
+    }
   }
 }
