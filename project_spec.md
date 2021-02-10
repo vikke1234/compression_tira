@@ -26,7 +26,7 @@ Compressed data
 ```cpp
 struct {
     uint8_t tree_size;
-      struct Node {
+      struct path_t {
           uint8_t byte;
           uint8_t len;
           uint16_t path;
