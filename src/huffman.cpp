@@ -1,16 +1,14 @@
 #include "../headers/huffman.h"
 #include "../headers/heap.h"
+#include <bitset>
 #include <climits>
 #include <cstdio>
 #include <filesystem>
-#include <iterator>
+#include <iostream>
 #include <limits>
 #include <math.h>
-#include <queue>
 #include <stdlib.h>
 #include <string>
-#include <utility>
-#include <vector>
 
 /*
   needed to keep track of how long it actually is
@@ -28,10 +26,16 @@ union path_t {
 
 namespace fs = std::filesystem;
 static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
-                   const std::size_t file_size, path_t *paths,
-                   const std::string &filename);
+                          const std::size_t file_size, path_t *paths,
+                          const std::string &filename);
 
-static std::uint8_t build_mask(std::uint8_t len) { return (1u << len) - 1u; }
+/**
+ * @brief builds a mask of `n` length, shouldn't be used for >8 bit things
+ * @return a mask of length `n`
+ */
+static inline std::uint8_t build_mask(std::uint8_t len) {
+  return (1u << len) - 1u;
+}
 /**
  * @brief this reverses the bits of a number
  * https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
@@ -53,12 +57,13 @@ inline std::uint16_t reverse_bits(std::uint16_t s) {
   return ((std::uint16_t)reverse_byte(low) << CHAR_BIT) | reverse_byte(high);
 }
 
-/*
+/**
  * @brief builds the paths for each byte in the tree
+ * @details left in the tree will be a 0, right will be a 1
  * NOTE: the paths will be in reverse order, should probably be changed
  */
 static void build_codes(const Node *node, path_t (&paths)[UCHAR_MAX],
-                 const std::uint16_t path, const std::uint8_t index) {
+                        const std::uint16_t path, const std::uint8_t index) {
   if (node == nullptr) {
     return;
   }
@@ -75,6 +80,10 @@ static void build_codes(const Node *node, path_t (&paths)[UCHAR_MAX],
  * @brief compresses file to filename.huff
  */
 extern void huffman_compression(const std::string &filename) {
+  if (!fs::exists(filename)) {
+    printf("Error: file not found %s\n", filename.c_str());
+    return;
+  }
   std::uint64_t frequencies[UCHAR_MAX] = {0};
   /*
    * This *SHOULD* be enough since a tree is at most UCHAR_MAX
@@ -110,7 +119,7 @@ extern void huffman_compression(const std::string &filename) {
 
   Node *root = nullptr, *left = nullptr, *right = nullptr;
   std::uint8_t height = 0;
-  while (heap.get_index() > 1) {
+  while (heap.get_size() > 1) {
     left = heap.pop();
     right = heap.pop();
     root = new Node(0, left->freq + right->freq, node_type_t::FILLER);
@@ -122,10 +131,11 @@ extern void huffman_compression(const std::string &filename) {
   root = heap.pop();
   build_codes(root, paths, 0, 0);
   write_to_file(data, uniques, file_size, paths, filename);
+  delete root;
   delete[] data;
 }
 
-/*
+/**
  * @brief writes the data to file in compressed form
  *
  * @details it will be encoded from the most significant bit first
@@ -138,13 +148,15 @@ extern void huffman_compression(const std::string &filename) {
  * in.
  */
 static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
-                   const std::size_t file_size, path_t *paths,
-                   const std::string &filename) {
-  FILE *output = fopen(std::string(filename + ".huf").c_str(), "wb");
+                          const std::size_t file_size, path_t *paths,
+                          const std::string &filename) {
+  FILE *output = fopen(std::string(filename + ".huff").c_str(), "wb");
   fwrite(&uniques, sizeof(uniques), 1, output);
   for (std::uint8_t i = 0; i < UCHAR_MAX; i++) {
     if (paths[i].len != 0) {
-      printf("path: %x, length: %d, character: %c, writing: %.8x\n", paths[i].path, paths[i].len, paths[i].character, paths[i].writeable);
+      std::cout << "path: " << std::bitset<8>(paths[i].path)
+                << ", character: " << paths[i].character
+                << ", len: " << +paths[i].len << "\n";
       fwrite(&paths[i], sizeof(path_t), 1, output);
     }
   }
@@ -159,13 +171,12 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
   std::uint8_t bit_iterator = 0;
   /* the entire array won't be written, only total_bits/8*/
   std::uint8_t *compressed_data = new std::uint8_t[file_size];
-
-  fseek(output, sizeof(total_bits), SEEK_CUR);
   /* the reversed path  */
   std::uint8_t to_write = 0;
   std::size_t compressed_iterator = 0;
+  const std::uint8_t INIT_BITS = CHAR_BIT;
   /* keeps track of when a byte is filled */
-  std::uint8_t bits_left = CHAR_BIT-1;
+  std::uint8_t bits_left = INIT_BITS;
 
   for (std::size_t i = 0; i < file_size; i++) {
     path_t path = paths[data[i]];
@@ -174,17 +185,15 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
     /* since the bits are in reverse order from when building the path we
      * reverse them */
     std::uint16_t reversed = reverse_bits(path.path) >> (16 - path.len);
-    printf("path: %x, len: %d, reversed: %x\n", path.path, path.len, reversed);
     /* warning scary bit stuff... tl;dr it will put the paths into as few bytes
      * as possible */
     if (bits_left - len >= 0) {
-      to_write |= reversed << bits_left;
+      to_write |= reversed << (bits_left - len);
       bits_left -= len;
-      printf("to_write: %x, bits left: %d\n", to_write, bits_left);
     } else {
       std::uint8_t diff = std::abs((long)(bits_left - len));
       std::uint16_t mask = build_mask(diff);
-      bits_left = 16;
+      bits_left = INIT_BITS;
       to_write |= reversed >> (len - diff);
       compressed_data[compressed_iterator++] = to_write;
       len -= diff;
@@ -199,27 +208,35 @@ static void write_to_file(std::uint8_t *data, std::uint8_t uniques,
          * this is necessary only when the path won't fit into 2 bytes
          */
         std::uint8_t high = reversed >> CHAR_BIT, low = reversed & 0xff;
-        std::uint8_t leftover = len - CHAR_BIT;
-        high <<= CHAR_BIT - leftover;
+        std::uint8_t leftover = len - INIT_BITS;
+        high <<= INIT_BITS - leftover;
         high |= low >> leftover;
         compressed_data[compressed_iterator++] = high;
-        to_write = low << (CHAR_BIT - leftover);
-        bits_left = CHAR_BIT - leftover;
+        to_write = low << (INIT_BITS - leftover);
+        bits_left = INIT_BITS - leftover;
       } else {
-        to_write = (reversed & mask) << (CHAR_BIT - len);
-        bits_left -= CHAR_BIT - len;
+        to_write = (reversed & mask) << (INIT_BITS - len);
+        bits_left = INIT_BITS - len;
       }
     }
 
-    if (bits_left == 0) {
-      bits_left = 16;
+    if (bits_left == 0 || i == file_size - 1) {
+      bits_left = INIT_BITS;
       compressed_data[compressed_iterator++] = to_write;
       to_write = 0;
     }
   }
+  std::cout << "total bits: " << total_bits << "\n";
+  fwrite(&total_bits, sizeof(total_bits), 1, output);
   fwrite(compressed_data, sizeof(*compressed_data), compressed_iterator,
          output);
   fclose(output);
+
+  for (int i = 0; i < compressed_iterator; i++) {
+    std::bitset<8> bits(compressed_data[i]);
+    std::cout << bits << " ";
+  }
+  std::cout << std::endl;
   delete[] compressed_data;
 }
 
