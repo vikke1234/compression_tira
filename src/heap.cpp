@@ -18,22 +18,29 @@ void Heap::insert(Node *node) {
   }
 }
 
+void Heap::heapify(std::uint16_t index) {
 
-void Heap::heapify(const std::uint8_t index) {
-  std::uint8_t smallest = index;
-  std::uint8_t left = index * 2;
-  std::uint8_t right = index * 2 + 1;
+  std::uint16_t smallest = index;
+  std::uint16_t left = index * 2 + 1;
+  std::uint16_t right = index * 2 + 2;
+  do {
+    smallest = index;
+    left = index * 2;
+    right = index * 2 + 1;
 
-  if (left < this->size && this->nodes[left] < this->nodes[smallest]) {
-    smallest = left;
-  }
+    if (left < this->size && *this->nodes[left] < *this->nodes[smallest]) {
+      smallest = left;
+    }
 
-  if (right < this->size && this->nodes[right] < this->nodes[smallest]) {
-    smallest = right;
-  }
+    if (right < this->size && *this->nodes[right] < *this->nodes[smallest]) {
+      smallest = right;
+    }
 
-  if (smallest != index) {
-    this->swap(smallest, index);
-    this->heapify(smallest);
-  }
+    if (smallest != index) {
+      this->swap(smallest, index);
+      index = smallest;
+    } else {
+      break;
+    }
+  } while (smallest < this->size);
 }

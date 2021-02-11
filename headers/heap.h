@@ -44,7 +44,7 @@ struct Node {
 class Heap {
   std::uint8_t size = 0; /* doesn't need to be larger than 8 bits since
                              the array is at most UCHAR_MAX */
-  Node *nodes[UCHAR_MAX] = {0};
+  Node *nodes[UCHAR_MAX * 2 + 1] = {0};
   std::uint32_t paths[UCHAR_MAX] = {0};
 
 public:
@@ -78,7 +78,7 @@ private:
    * @brief orders the nodes correctly
    * @return void
    */
-  void heapify(const std::uint8_t index);
+  void heapify(const std::uint16_t index);
   /**
    * @brief      swaps two nodes also swaps the path for the two
    *
