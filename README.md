@@ -2,7 +2,7 @@
 Programme: CS
 
 ## Dependencies
-- CxxTest
+- [Catch2](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository)
 
 ## Documentation
 Comparison of different compression algorithms (see below which will be
