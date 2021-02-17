@@ -12,6 +12,8 @@ mkdir build
 cmake ..
 make tira
 ```
+
+NOTE: it might not work fully yet, it should work on "simple repetitive data", because the lengths of the paths may be too long (>16 bits) it will crash and burn. I'm working currently on a solution for it but it still requires testing.
 ## Documentation
 Comparison of different compression algorithms (see below which will be
 compared, there may be added more in the future).
