@@ -4,6 +4,14 @@ Programme: CS
 ## Dependencies
 - [Catch2](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository)
 
+## Build instructions
+```sh
+git clone https://github.com/vikke1234/compression_tira.git
+cd compression_tira
+mkdir build
+cmake ..
+make tira
+```
 ## Documentation
 Comparison of different compression algorithms (see below which will be
 compared, there may be added more in the future).
