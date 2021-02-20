@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <iterator>
 #include <stdexcept>
+#include <memory>
+#include <cassert>
 
 /* simple implementation of the stl vector, implemented due to course
  * restrictions
@@ -13,7 +15,7 @@
 template <typename T> class vec {
   std::size_t current_index = 0;
   std::size_t array_capacity = 10;
-  T *array = new T[array_capacity](); /* smart pointer? */
+  std::unique_ptr<T[]> array = std::make_unique<T[]>(array_capacity); /* smart pointer? */
 
 public:
   /**
@@ -22,15 +24,15 @@ public:
   vec() = default;
 
   vec(const std::size_t size) {
-    array = new T[size]();
+    array.reset(new T[size]());
     array_capacity = size;
   }
 
   vec(const vec &v) {
-    array = new T[v.array_capacity];
+    array.reset(new T[v.array_capacity]);
     current_index = v.current_index;
     array_capacity = v.array_capacity;
-    std::copy(v.array, v.array + v.array_capacity, array);
+    std::copy(v.array.get(), v.array.get() + v.array_capacity, array.get());
   }
 
   vec(vec &&temp) {
@@ -39,13 +41,11 @@ public:
     array = std::exchange(temp.array, new T[temp.array_capacity]());
   }
 
-  ~vec() { delete[] array; }
-
   /**
    * @brief pushes to the back of the vector a value
    */
   void push_back(const T &val) {
-    if (current_index < array_capacity) {
+    if (current_index < array_capacity - 1) {
       array[current_index++] = val;
     } else {
       realloc();
@@ -53,25 +53,34 @@ public:
     }
   }
 
-  T &back() const { return array[current_index - 1]; }
+  T &back() const {
+    assert(current_index > 0);
+    return array[current_index-1];
+  }
 
   T &front() const { return array[0]; }
 
   /**
    * @returns the amount of elements, not necessarely equal to capacity
    */
-  std::size_t size() const { return current_index; }
-  std::size_t capacity() const { return array_capacity; }
+  inline std::size_t size() const { return current_index; }
+  inline std::size_t capacity() const { return array_capacity; }
 
   /**
    * @brief reserves `n` elemts to the array
    */
   void reserve(const std::size_t new_capacity) {
     T *new_array = new T[new_capacity]();
-    std::copy(array, array + array_capacity, new_array);
-    delete[] array;
-    array = new_array;
+    std::copy(array.get(), array.get() + array_capacity, new_array);
+    array.reset(new_array);
     array_capacity = new_capacity;
+  }
+
+  void resize(const std::size_t new_size) {
+    if(new_size > this->capacity()) {
+      reserve(new_size * 3 / 2);
+    }
+    current_index = new_size;
   }
 
   /**
@@ -94,12 +103,11 @@ public:
   vec<T> &operator=(const vec &other) {
     if (this != &other) {
       if (array_capacity != other.array_capacity) {
-        delete[] array;
-        array = new T[other.array_capacity];
+        array.reset(new T[other.array_capacity]);
         array_capacity = other.array_capacity;
       }
       current_index = other.current_index;
-      std::copy(other.array, other.array + other.array_capacity, array);
+      std::copy(other.array.get(), other.array.get() + other.array_capacity, array.get());
     }
     return *this;
   }

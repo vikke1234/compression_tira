@@ -5,8 +5,8 @@
 #include <climits>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <iostream>
-#include <iterator>
 
 constexpr std::uint8_t BITS_PER_ELEMENT = sizeof(std::uint64_t) * CHAR_BIT;
 
@@ -15,9 +15,14 @@ class bitstring {
   vec<std::uint64_t> bits = vec<std::uint64_t>(4);
 
 public:
-  std::uint32_t len = 0; /* max length of the tree is 255 */
+  /**
+   @brief length in bits
+   @details max length of the tree is 255 but this is a 64 bit since it also
+   stores the length of the entire string
+  */
+  std::uint64_t len = 0;
 
-  bitstring() = default;
+  bitstring();
 
   /* TODO: add a list initializer for uint8_t? */
 
@@ -53,30 +58,67 @@ public:
   void encode(bitstring &to_encode);
 
   /**
+   * @brief reverses the entire bitstring using compiler specific stuff
+   */
+  bitstring &reverse();
+  /**
    @brief reserves `n` bytes for the byte string
   */
   void reserve(std::size_t size);
+
+  /**
+   * @brief this is basically just to make it "easier" to read the tree
+   * correctly, should NOT be used for anything else
+   */
+  void write_tree_path(std::ofstream &stream) const;
+
+  /**
+   * @brief does bitwise or on a bitstring
+   */
   bitstring operator|(const bitstring &mask) const;
+  /**
+   * @brief does bitwise and on a bitstring
+   */
   bitstring operator&(const bitstring &mask) const;
+
+  /**
+   * @brief shifts a bitstring right
+   */
   bitstring operator>>(const int i) const;
+
+  /**
+   * @brief shifts a bitstring left
+   */
   bitstring operator<<(const int i) const;
 
+  /**
+   * @brief shifts a bitstring right
+   */
   bitstring &operator>>=(const int i);
+  /**
+   * @brief shifts a bitstring left
+   */
   bitstring &operator<<=(const int i);
+  /**
+   * @brief does bitwise or on a bitstring
+   */
   bitstring &operator|=(const bitstring &mask);
+  /**
+   * @brief does bitwise and on a bitstring
+   */
   bitstring &operator&=(const bitstring &mask);
+  /**
+   * @brief compares bitstrings if they're equal
+   */
   bool operator==(const bitstring &bs) const;
+  /**
+   * @brief compares bitstrings if they're not equal
+   */
   bool operator!=(const bitstring &bs) const;
   bitstring &operator=(const bitstring &other);
 
-  friend std::ostream &operator<<(std::ostream &os, const bitstring &value) {
-    for (int table = value.bits.size(); table >= 0; table--) {
-      for (int j = BITS_PER_ELEMENT; j >= 0; j--) {
-        os << ((value.bits[table] >> j) & 1);
-      }
-    }
-    return os;
-  }
+  friend std::ostream &operator<<(std::ostream &os, const bitstring &value);
+  friend std::ofstream &operator<<(std::ofstream &stream, const bitstring &bs);
 
 private:
   /**

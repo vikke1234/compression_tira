@@ -2,11 +2,11 @@
 #define HEAP_H
 #include <climits>
 #include <cstdint>
+#include <iomanip>
+#include <iostream>
+#include <algorithm>
 
-enum node_type_t {
-      DATA,
-      FILLER
-};
+enum node_type_t { DATA, FILLER };
 /**
  * @brief a node in the priority tree
  */
@@ -21,7 +21,7 @@ struct Node {
   }
 
   Node(std::uint8_t byte, std::uint64_t freq, node_type_t type) {
-    this->byte = 0; /* doesn't really matter what this is since
+    this->byte = byte; /* doesn't really matter what this is since
                        it will be checked from the type when building
                        the code table. */
     this->freq = freq;
@@ -31,11 +31,34 @@ struct Node {
     if (this->left != nullptr) {
       delete this->left;
     }
-    if(this->right != nullptr) {
+    if (this->right != nullptr) {
       delete this->right;
     }
   }
-  friend bool operator<(const Node &left, const Node &right) { return left.freq < right.freq; }
+  static int height(Node const *node) {
+    if (node == nullptr)
+      return 0;
+
+    return std::max(height(node->left), height(node->right)) + 1;
+  }
+  int height() {
+    return height(this);
+  }
+  void __attribute__((noinline)) print_tree(int indent = 0) {
+    if (right != nullptr) {
+      right->print_tree(indent + 4);
+    }
+    if (indent) {
+      std::cout << std::setw(indent) << " ";
+    }
+    std::cout << std::hex << +byte << "\n ";
+    if (left != nullptr) {
+      left->print_tree(indent + 4);
+    }
+  }
+  friend bool operator<(const Node &left, const Node &right) {
+    return left.freq < right.freq;
+  }
 };
 
 /**
@@ -73,6 +96,7 @@ public:
       }
     }
   }
+
 private:
   /**
    * @brief orders the nodes correctly

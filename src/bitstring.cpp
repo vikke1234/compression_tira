@@ -1,33 +1,47 @@
 #include "../headers/bitstring.h"
 
+#ifdef WIN32
+#define __builtin_bswap64 _byteswap_uint64
+#else
+#include <endian.h>
+#endif
+#include <cassert>
+#include <algorithm>
+
 void bitstring::encode(bitstring &to_encode) {
-  auto len = to_encode.len;
-  auto remeinder = len % BITS_PER_ELEMENT;
-  for (std::uint8_t table = 0; table < to_encode.bits.size(); table++) {
+  assert(to_encode.len > 0);
+  auto encoded_len = to_encode.len;
+  this->len += encoded_len;
+  int table = 0;
+  do {
     /* warning scary bit stuff... tl;dr it will put the paths into as few
      * bytes as possible */
-    if ((std::int8_t)bits_left > len) {
+    if (bits_left > encoded_len) {
+      /* this should be the last time the loop runs */
       bits.back() |= to_encode.bits[table] << (BITS_PER_ELEMENT - bits_left);
-      bits_left -= len;
+      bits_left -= encoded_len;
     } else {
       bits.back() |= to_encode.bits[table] << (BITS_PER_ELEMENT - bits_left);
-      bits_left = std::abs((long long)bits_left - len);
+      auto bits_written = bits_left;
+      bits_left = std::abs((long long)bits_left - (long long)encoded_len);
       std::uint64_t the_rest = to_encode.bits[table] >> bits_left;
+      encoded_len -= bits_left + bits_written;
       bits_left = BITS_PER_ELEMENT - bits_left;
       bits.push_back(the_rest);
     }
-  }
+    table++;
+  } while (table < to_encode.len / sizeof(bits[0]) && encoded_len > 0);
 }
 
-bitstring &bitstring::bitstring::operator|=(const bitstring &mask) {
-  for (int table = 0; table < bits.capacity() && table < mask.bits.capacity();
+bitstring &bitstring::operator|=(const bitstring &mask) {
+  for (std::size_t table = 0; table < bits.capacity() && table < mask.bits.capacity();
        table++) {
     bits[table] |= mask.bits[table];
   }
   return *this;
 }
 
-bitstring bitstring::bitstring::operator|(const bitstring &mask) const {
+bitstring bitstring::operator|(const bitstring &mask) const {
   bitstring bs = *this;
   bs |= mask;
   return bs;
@@ -86,20 +100,20 @@ bitstring &bitstring::operator>>=(const int i) {
 }
 
 void bitstring::unset_bit(std::size_t i) {
-  if (i > BITS_PER_ELEMENT * bits.capacity()) {
-    return;
+  if (i >= std::max((std::size_t)BITS_PER_ELEMENT, BITS_PER_ELEMENT * bits.capacity())) {
+    bits.resize(i % BITS_PER_ELEMENT + 1);
   }
-  std::uint8_t table = i / BITS_PER_ELEMENT;
-  std::uint16_t index = i % BITS_PER_ELEMENT;
+  int table = i / BITS_PER_ELEMENT;
+  int index = i % BITS_PER_ELEMENT;
   bits[table] &= ~(1 << index);
 }
 
 void bitstring::set_bit(std::size_t i) {
-  if (i > BITS_PER_ELEMENT * bits.capacity() - 1) {
-    return;
+  if (i >= std::max((std::size_t)BITS_PER_ELEMENT, BITS_PER_ELEMENT * bits.capacity())) {
+    bits.resize(i % BITS_PER_ELEMENT + 1);
   }
-  std::uint8_t table = i / BITS_PER_ELEMENT;
-  std::uint16_t index = i % BITS_PER_ELEMENT;
+  int table = i / BITS_PER_ELEMENT;
+  int index = i % BITS_PER_ELEMENT;
   bits[table] |= 1 << index;
 }
 
@@ -124,7 +138,7 @@ bitstring &bitstring::operator=(const bitstring &other) {
 }
 
 bool bitstring::operator==(const bitstring &bs) const {
-  for (int i = 0; i < bits.capacity() && i < bs.bits.capacity(); i++) {
+  for (std::size_t i = 0; i < bits.capacity() && i < bs.bits.capacity(); i++) {
     if (bits[i] != bs.bits[i]) {
       return false;
     }
@@ -137,13 +151,17 @@ bool bitstring::operator!=(const bitstring &bs) const {
   return !(operator==(bs));
 }
 
-bitstring::bitstring(std::initializer_list<std::uint64_t> list) : bits() {
+bitstring::bitstring()
+  :bits(4) {
+}
+bitstring::bitstring(std::initializer_list<std::uint64_t> list) : bits(4) {
   for (auto n : list) {
     bits.push_back(n);
   }
+  bits.resize(list.size());
 }
 
-bitstring::bitstring(const std::uint64_t n) : bits() { bits[0] = n; }
+bitstring::bitstring(const std::uint64_t n) : bits(4) { bits.push_back(n); }
 
 bitstring::bitstring(const std::uint64_t n, const std::uint32_t len) {
   bits[0] = n;
@@ -152,3 +170,39 @@ bitstring::bitstring(const std::uint64_t n, const std::uint32_t len) {
 
 bitstring::bitstring(const bitstring &bs)
     : len(bs.len), bits(bs.bits), bits_left(bs.bits_left) {}
+
+std::ofstream &operator<<(std::ofstream &stream, const bitstring &bs) {
+  auto len = bs.len;
+  std::cout << "table size: " << bs.bits.size() << "\n";
+  for (std::size_t table = 0; table < bs.bits.size(); table++) {
+    /* we want the written  */
+    std::uint64_t big_endian = bs.bits[table];
+    stream.write((const char *)&big_endian, sizeof(big_endian));
+  }
+  return stream;
+}
+
+bitstring &bitstring::reverse() {
+  vec<std::uint64_t> reversed(bits.size());
+  for (int i = 0; i < bits.size(); i++) {
+    reversed[bits.size() - i] = __bswap_64(bits[i]);
+  }
+  return *this;
+}
+
+void bitstring::write_tree_path(std::ofstream &stream) const {
+  std::cout << "bitstring length: " << len << "\n";
+  for (int i = 0; i < bits.capacity(); i++) {
+    stream.write((const char *)&bits[i], sizeof(bits[i]));
+  }
+}
+
+std::ostream &operator<<(std::ostream &os, const bitstring &value) {
+  for (int table = value.len / BITS_PER_ELEMENT; table >= 0; table--) {
+    for (int j = std::min(value.len, (std::uint64_t)(BITS_PER_ELEMENT - 1llu)); j >= 0; j--) {
+      os << ((value.bits[table] >> j) & 1);
+    }
+  }
+  os << "\n";
+  return os;
+}

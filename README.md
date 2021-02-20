@@ -25,5 +25,8 @@ Documentation will be written in English.
 ## Weekly reports
 [Week 1](weekly_reports/week1.md)
 [Week 2](weekly_reports/week2.md)
+[Week 3](weekly_reports/week3.md)
+[Week 4](weekly_reports/week4.md)
+[Week 5](weekly_reports/week5.md)
 
-[Test coverage](index.html)
+[Test coverage](index.html) may be outdated

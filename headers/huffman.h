@@ -1,4 +1,5 @@
 #ifndef HUFFMAN_H
+#define HUFFMAN_H
 #include <cstdint>
 #include <memory>
 #include <string>

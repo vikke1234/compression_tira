@@ -141,7 +141,9 @@ TEST_CASE("Bitstrings", "[bitstring]") {
   }
 
   SECTION("shifting left") {
-    bitstring start_value{0xaa}, end_result{0xaa00}, new_value;
+    bitstring start_value{0xaa};
+    bitstring end_result{0xaa00};
+    bitstring new_value;
     new_value = start_value << 8;
     REQUIRE(end_result == new_value);
   }
@@ -152,32 +154,39 @@ TEST_CASE("Bitstrings", "[bitstring]") {
   }
 
   SECTION("logical OR") {
-    bitstring start_value, compare_to(1llu), new_value, mask{1llu};
+    bitstring start_value, compare_to(1llu), new_value, mask(1llu);
     new_value = start_value | mask;
     REQUIRE(new_value == compare_to);
   }
 
   SECTION("logical AND") {
-    bitstring start_value{1}, mask{0}, compare_to{0};
+    bitstring start_value(1), mask(0), compare_to(0);
     REQUIRE((start_value & mask) == compare_to);
   }
 
   SECTION("simple encoding") {
-    bitstring start{0}, append{0xff}, end_value{0xff};
+    bitstring start(0), append(0xff), end_value(0xff);
+    append.len = 8;
     start.encode(append);
     REQUIRE(start == end_value);
   }
 
   SECTION("complex encoding") {
-    bitstring start{0}, append{0xf}, end_result{ULLONG_MAX, 0xf};
+    bitstring start(0);
+    bitstring append(0xf);
+    bitstring end_result{0xafff'ffff'ffff'ffffllu, 0xa};
+    bitstring last(0xaa);
     append.len = 4;
-    for (int i = 0; i < 17 /*64/4 + 1*/; i++) {
+    last.len = 8;
+    for (int i = 0; i < 15; i++) {
       start.encode(append);
     }
+    start.encode(last);
     REQUIRE(start == end_result);
   }
+
   SECTION("complex uneven encoding") {
-    bitstring start, append(0x7, 3), end_result{ULLONG_MAX, 0x3};
+    bitstring start(0), append(0x7, 3), end_result{ULLONG_MAX, 0x3};
     for (int i = 0; i < 22; i++) {
       start.encode(append);
     }
