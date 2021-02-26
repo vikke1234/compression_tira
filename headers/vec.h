@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <memory>
 #include <cassert>
+#include <iostream>
 
 /* simple implementation of the stl vector, implemented due to course
  * restrictions
@@ -24,8 +25,8 @@ public:
   vec() = default;
 
   vec(const std::size_t size) {
-    array.reset(new T[size]());
     array_capacity = size;
+    array.reset(new T[size]());
   }
 
   vec(const vec &v) {
@@ -91,7 +92,7 @@ public:
     if (index < array_capacity) {
       return array[index];
     } else {
-      throw std::range_error("index");
+      throw std::range_error("error index out of range");
     }
   }
 
