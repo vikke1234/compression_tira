@@ -153,6 +153,12 @@ TEST_CASE("Bitstrings", "[bitstring]") {
     REQUIRE((bs >> 8) == compare_to);
   }
 
+  SECTION("large shift left") {
+    bitstring bs{0xff}, compare_to{0llu, 0xff};
+    bitstring result = bs << 64;
+    REQUIRE(result == compare_to);
+  }
+
   SECTION("logical OR") {
     bitstring start_value, compare_to(1llu), new_value, mask(1llu);
     new_value = start_value | mask;
@@ -174,21 +180,26 @@ TEST_CASE("Bitstrings", "[bitstring]") {
   SECTION("complex encoding") {
     bitstring start(0);
     bitstring append(0xf);
-    bitstring end_result{0xafff'ffff'ffff'ffffllu, 0xa};
-    bitstring last(0xaa);
-    append.len = 4;
-    last.len = 8;
-    for (int i = 0; i < 15; i++) {
-      start.encode(append);
-    }
+    bitstring end_result{0xa000'0000'0000'000fllu, 0xa};
+    bitstring last(0xa);
+    start.len = 0;
+    append.len = 60;
+    last.len = 4;
+
+    start.encode(append);
     start.encode(last);
+    start.encode(last);
+    end_result.len = start.len;
     REQUIRE(start == end_result);
   }
 
   SECTION("complex uneven encoding") {
-    bitstring start(0), append(0x7, 3), end_result{ULLONG_MAX, 0x3};
+    bitstring start(0, 0), append(0x7, 3), end_result{ULLONG_MAX, 0x3};
+
+    /* 22 * 3 = 66, 0x7 = 111 */
     for (int i = 0; i < 22; i++) {
       start.encode(append);
     }
+    REQUIRE(start == end_result);
   }
 }

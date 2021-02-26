@@ -1,14 +1,11 @@
 #include "../headers/huffman.h"
 #include "../headers/bitstring.h"
 #include "../headers/heap.h"
-#include <bitset>
 #include <climits>
 #include <cstdio>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
-#include <math.h>
 #include <stdlib.h>
 #include <string>
 
@@ -18,12 +15,12 @@
   4 0's before it
 */
 struct path_t {
-  std::uint8_t character;
-  std::uint8_t len;
-  bitstring path;
+  std::uint8_t character = 0;
+  std::uint8_t len = 0;
+  bitstring path = {0};
 
   friend std::ofstream &operator<<(std::ofstream &stream, const path_t &path) {
-    std::cout << "writing byte: 0x" << std::hex << +path.character
+    std::cout << "writing byte: 0x" << std::hex << path.character
               << ", to: " << stream.tellp() << "\n";
     stream.write((const char *)&path.character, sizeof(character));
     std::cout << "length: " << +path.len << ", to: " << stream.tellp() << "\n";
@@ -34,38 +31,12 @@ struct path_t {
   }
 };
 
+void decompress(std::uint8_t *data, std::size_t data_size,
+                std::uint64_t total_bits, Node *const root);
 namespace fs = std::filesystem;
 static void write_to_file(std::uint8_t *data, std::uint16_t tree_size,
                           const std::size_t file_size, path_t *paths,
                           const std::string &filename);
-
-/**
- * @brief builds a mask of `n` length, shouldn't be used for >8 bit things
- * @return a mask of length `n`
- */
-static inline std::uint8_t build_mask(std::uint8_t len) {
-  return (1u << len) - 1u;
-}
-
-/**
- * @brief this reverses the bits of a number
- * https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith64BitsDiv
- */
-inline std::uint8_t reverse_byte(std::uint8_t byte) {
-#ifdef __x86_64
-  return ((byte * 0x802lu & 0x22110lu) | (byte * 0x8020lu & 0x88440lu)) *
-             0x10101lu >>
-         16;
-#else
-  return static_cast<std::uint8_t>(
-      ((byte * 0x80200802ull) & 0x0884422110ull) * 0x0101010101ull >> 32);
-#endif
-}
-
-inline std::uint16_t reverse_bits(std::uint16_t s) {
-  std::uint8_t high = s >> CHAR_BIT, low = s & 0xff;
-  return ((std::uint16_t)reverse_byte(low) << CHAR_BIT) | reverse_byte(high);
-}
 
 /**
  * @brief builds the paths for each byte in the tree
@@ -80,7 +51,7 @@ inline std::uint16_t reverse_bits(std::uint16_t s) {
  * NOTE: the paths will be in reverse order, should probably be changed
  */
 static void build_paths(const Node *const node, path_t (&paths)[UCHAR_MAX + 1],
-                        bitstring &path, const std::uint8_t index = 0u) {
+                        bitstring path, const std::uint8_t index = 0u) {
   if (node == nullptr) {
     return;
   }
@@ -88,6 +59,8 @@ static void build_paths(const Node *const node, path_t (&paths)[UCHAR_MAX + 1],
     std::uint8_t tmp = index > 0 ? index : 1;
     paths[node->byte] = {node->byte, tmp, path};
     paths[node->byte].path.len = tmp;
+    std::cout << "found byte: " << node->byte
+              << ", at: " << paths[node->byte].path;
     return;
   }
   path.unset_bit(index);
@@ -111,7 +84,7 @@ extern void huffman_compression(const std::string &filename) {
    * high (more like floor(lg(255)) = 7) though since it's not completely
    * balanced it might be more
    */
-  path_t paths[UCHAR_MAX + 1] = {0};
+  path_t paths[UCHAR_MAX + 1];
   const std::size_t file_size = fs::file_size(filename);
   std::uint8_t *data = new std::uint8_t[file_size];
   /* this is to know how many nodes will exist when writing to file */
@@ -173,21 +146,23 @@ extern void huffman_compression(const std::string &filename) {
 static void write_to_file(std::uint8_t *data, std::uint16_t tree_size,
                           const std::size_t file_size, path_t *paths,
                           const std::string &filename) {
-
   std::ofstream output(filename + ".huff", std::ios::binary | std::ios::out);
   std::cout << "writing to: " << output.tellp() << ", tree size: " << +tree_size
             << "\n";
   output.write((const char *)&tree_size, sizeof(tree_size));
   for (std::uint8_t i = 0; i < UCHAR_MAX; i++) {
     if (paths[i].len != 0) {
-      std::cout << paths[i].path << "\n";
+      std::cout << "\n";
       output << paths[i];
     }
   }
 
-  bitstring compressed_data(0);
+  bitstring compressed_data;
+  compressed_data.len = 0;
+  std::cout << "encoding paths\n";
   for (std::size_t i = 0; i < file_size; i++) {
-    path_t path = paths[data[i]];
+    const std::uint8_t byte = data[i];
+    path_t &path = paths[byte];
     compressed_data.encode(path.path);
   }
 
@@ -224,7 +199,7 @@ extern void huffman_decompress(const std::string &filename) {
     bitstring bs{p[0], p[1], p[2], p[3]}; // shit tier code
     paths[i].path = bs;
     std::cout << "Read byte: 0x" << +paths[i].character
-              << ", length: " << paths[i].len << "\n";
+              << ", length: " << +paths[i].len << "\n";
   }
 
   decltype(bitstring::len) total_bits = 0;
@@ -250,7 +225,8 @@ extern void huffman_decompress(const std::string &filename) {
   for (int i = 0; i < tree_size; i++) {
     path_t path = paths[i];
     Node *node = root;
-    std::cout << "Building tree for: 0x" << std::hex << +path.character << "\n";
+    std::cout << "Building tree for: 0x" << std::hex << +path.character
+              << ", len: " << +path.len << "\n";
     std::string p = "";
     for (std::int16_t len = 0; len < path.len; len++) {
       if (path.path.get_bit(len)) {
@@ -260,45 +236,55 @@ extern void huffman_decompress(const std::string &filename) {
         node = node->right;
         p += "1";
       } else {
-        if (node->left == nullptr) {
+        if (node->left == nullptr && node->type != DATA) {
           node->left = new Node(0, 0, node_type_t::FILLER);
         }
         node = node->left;
         p += "0";
       }
     }
-    std::cout << p + "\n";
+    std::cout << p + "\n\n";
     node->byte = path.character;
     node->type = node_type_t::DATA;
   }
 
-  std::cout << "Tree built\n";
+  path_t temp_paths[UCHAR_MAX + 1] = {0};
+  decompress(data, data_size, total_bits, root);
+  delete[] data;
+  delete[] paths;
+  delete root;
+}
+
+/**
+ * @brief decompersses the data in data
+ */
+void decompress(std::uint8_t *data, std::size_t data_size,
+                std::uint64_t total_bits, Node *const root) {
+  assert(root != nullptr);
+  assert(data != nullptr);
   FILE *uncompressed = fopen("output", "wb");
-  std::size_t data_iterator = 0;
   Node *copy = root;
   copy->print_tree();
+  std::size_t data_iterator = 0;
   std::string p = "";
   while (total_bits > 0 && data_iterator < data_size) {
     std::uint8_t byte = data[data_iterator++];
-    for (std::int16_t index = CHAR_BIT - 1; index >= 0 && total_bits > 0;
-         index--) {
+    for (std::int16_t index = 0; index < CHAR_BIT && total_bits > 0; index++) {
       if (byte & (1 << index)) {
         if (copy != nullptr) {
           copy = copy->right;
         }
-        p += "1";
       } else {
         if (copy != nullptr) {
           copy = copy->left;
         }
-        p += "0";
       }
       total_bits--;
+
       if (copy != nullptr) {
         if (copy->type == node_type_t::DATA) {
           fwrite(&copy->byte, sizeof copy->byte, 1, uncompressed);
           copy = root;
-          std::cout << p + "\n";
           p = "";
           /*
             it's PROBABLY about as fast to write like this as it would be
@@ -311,8 +297,5 @@ extern void huffman_decompress(const std::string &filename) {
       }
     }
   }
-
-  delete[] data;
-  delete[] paths;
-  delete root;
+  std::cout << "bits left: " << total_bits << "\n";
 }
