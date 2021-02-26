@@ -1,5 +1,8 @@
 # Data compression TIRA
 Programme: CS
+## Note
+Doesn't work on binary files, this may be due to the larger alphabet size.
+Though it should work fine on text files. May be fixed at a later date.
 
 ## Dependencies
 - [Catch2](https://github.com/catchorg/Catch2/blob/devel/docs/cmake-integration.md#installing-catch2-from-git-repository)
@@ -19,6 +22,17 @@ Comparison of different compression algorithms (see below which will be
 compared, there may be added more in the future).
 
 Documentation will be written in English.
+
+# Usage
+Compression
+```shell
+./tira -c filename
+```
+Decompression
+```shell
+./tira -d filename
+```
+The filename after compression will be `output`
 
 [Project specification](project_spec.md)
 
