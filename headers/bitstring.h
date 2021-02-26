@@ -11,7 +11,7 @@
 constexpr std::uint8_t BITS_PER_ELEMENT = sizeof(std::uint64_t) * CHAR_BIT;
 
 class bitstring {
-  std::int8_t bits_left = 64;
+  std::int8_t bits_left = BITS_PER_ELEMENT;
   vec<std::uint64_t> bits = vec<std::uint64_t>(4);
 
 public:
@@ -29,6 +29,7 @@ public:
   bitstring(std::initializer_list<std::uint64_t> list);
 
   bitstring(const bitstring &bs);
+
   /**
    * @brief make a bitstring out of a number
    */
