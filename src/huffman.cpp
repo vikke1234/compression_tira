@@ -69,9 +69,6 @@ static void build_paths(const Node *const node, path_t (&paths)[UCHAR_MAX + 1],
   build_paths(node->right, paths, path, index + 1);
 }
 
-/**
- * @brief compresses file to filename.huff
- */
 extern void huffman_compression(const std::string &filename) {
   if (!fs::exists(filename)) {
     printf("Error: file not found %s\n", filename.c_str());
@@ -111,6 +108,7 @@ extern void huffman_compression(const std::string &filename) {
     }
   }
 
+  /* here we will build the tree so we will be able to decode the data later */
   Node *root = nullptr, *left = nullptr, *right = nullptr;
   while (heap.get_size() > 1) {
     left = heap.pop();
@@ -120,13 +118,15 @@ extern void huffman_compression(const std::string &filename) {
     root->right = right;
     heap.insert(root);
   }
+
   root = heap.pop();
-  root->print_tree(0);
+
   bitstring initial_path;
   initial_path.len = 0;
   build_paths(root, paths, initial_path);
   std::cout << "height: " << root->height() << "\n";
   write_to_file(data, tree_size, file_size, paths, filename);
+
   delete root;
   delete[] data;
 }
@@ -181,22 +181,35 @@ extern void huffman_decompress(const std::string &filename) {
     std::cout << "Error file not found: " << filename << "\n";
     return;
   }
+  /*
+    the main point of this function is to read the necessary data
+    to decompress it, it also builds the tree which it then passes
+    to the actual decompressing function
+
+    there's probably some vulnerabilities here as there's not much
+    data validation, to fix this it would probably be worth to place
+    a couple of asserts in here
+  */
   std::ifstream stream(filename, std::ios::binary);
   /* unique nodes available */
   std::uint16_t tree_size = 0;
   stream.read((char *)&tree_size, sizeof(tree_size));
   std::cout << "Tree size: 0x" << std::hex << tree_size << "\n";
   path_t *paths = new path_t[tree_size];
+
   for (int i = 0; i < tree_size; i++) {
     std::cout << "at: " << std::hex << stream.tellg() << "\n";
     std::size_t to_read = sizeof(paths[i].character);
     stream.read((char *)&paths[i].character, to_read);
+
     to_read = sizeof(paths[i].len);
     stream.read((char *)&paths[i].len, sizeof(paths[i].len));
+
     std::uint64_t p[4] = {0};
     to_read = sizeof(p);
     stream.read((char *)p, to_read);
     bitstring bs{p[0], p[1], p[2], p[3]}; // shit tier code
+
     paths[i].path = bs;
     std::cout << "Read byte: 0x" << +paths[i].character
               << ", length: " << +paths[i].len << "\n";
@@ -213,9 +226,12 @@ extern void huffman_decompress(const std::string &filename) {
 
   std::uint8_t *data = new std::uint8_t[data_size];
   stream.seekg(data_start);
+
   std::cout << "reading data from: 0x" << data_start << "\n";
   stream.read((char *)data, sizeof(data) * data_size);
+
   std::cout << "total bits: 0x" << total_bits << "\n";
+
   /*
     build the tree, slow as shit to make it though...
     luckily it's not that large...
@@ -243,6 +259,7 @@ extern void huffman_decompress(const std::string &filename) {
         p += "0";
       }
     }
+
     std::cout << p + "\n\n";
     node->byte = path.character;
     node->type = node_type_t::DATA;
@@ -250,6 +267,7 @@ extern void huffman_decompress(const std::string &filename) {
 
   path_t temp_paths[UCHAR_MAX + 1] = {0};
   decompress(data, data_size, total_bits, root);
+
   delete[] data;
   delete[] paths;
   delete root;
@@ -257,16 +275,23 @@ extern void huffman_decompress(const std::string &filename) {
 
 /**
  * @brief decompersses the data in data
+ * @param data the data to compress
+ * @param data_size the size of the data array
+ * @param total_bits the amount of bits in data
+ * @param root the root of the tree
  */
 void decompress(std::uint8_t *data, std::size_t data_size,
                 std::uint64_t total_bits, Node *const root) {
   assert(root != nullptr);
   assert(data != nullptr);
+
   FILE *uncompressed = fopen("output", "wb");
   Node *copy = root;
   copy->print_tree();
   std::size_t data_iterator = 0;
   std::string p = "";
+
+  /* walk the tree and decompress the file */
   while (total_bits > 0 && data_iterator < data_size) {
     std::uint8_t byte = data[data_iterator++];
     for (std::int16_t index = 0; index < CHAR_BIT && total_bits > 0; index++) {
