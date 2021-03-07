@@ -7,6 +7,8 @@
 #include <algorithm>
 
 enum node_type_t { DATA, FILLER };
+constexpr const std::size_t NODES_SIZE = UCHAR_MAX * 2 + 1;
+
 /**
  * @brief a node in the priority tree
  */
@@ -65,10 +67,9 @@ struct Node {
  * @brief the priority queue for the huffman algorithm
  */
 class Heap {
-  std::uint8_t size = 0; /* doesn't need to be larger than 8 bits since
-                             the array is at most UCHAR_MAX */
-  Node *nodes[UCHAR_MAX * 2 + 1] = {0};
-  std::uint32_t paths[UCHAR_MAX] = {0};
+  int size = 0;
+  Node *nodes[NODES_SIZE] = {0};
+  std::uint32_t paths[UCHAR_MAX+1] = {0};
 
 public:
   /*
@@ -76,6 +77,8 @@ public:
    * @return Node *
    */
   Node *pop(void);
+
+  Node *top(void);
   /*
    * @brief only fetches the top value from the queue
    * @return Node *
@@ -88,7 +91,7 @@ public:
   void insert(Node *node);
 
   Node *operator[](std::uint8_t index) { return this->nodes[index]; }
-  std::uint8_t get_size(void) { return this->size; }
+  int get_size(void) { return this->size; }
   ~Heap() {
     for (std::uint8_t i = 0; i < this->size; i++) {
       if (this->nodes[i] != nullptr) {

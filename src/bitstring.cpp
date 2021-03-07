@@ -161,6 +161,7 @@ bool bitstring::operator!=(const bitstring &bs) const {
 bitstring::bitstring() {
   bits.push_back(0);
 }
+
 bitstring::bitstring(std::initializer_list<std::uint64_t> list) : bits(4) {
   for (auto n : list) {
     bits.push_back(n);

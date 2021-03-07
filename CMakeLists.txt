@@ -49,8 +49,8 @@ add_executable(tira
   )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU")
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wshift-count-overflow -Wall -Wextra -Wunreachable-code -Wpedantic -fsanitize=address -fno-omit-frame-pointer)
-  target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wshift-count-overflow -Wall -Wextra -Wunreachable-code -Wpedantic)
+  target_link_options(${PROJECT_NAME} PRIVATE)
 endif()
 if ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
   target_compile_options(${PROJECT_NAME} PRIVATE -Wweak-vtables -Wexit-time-destructors -Wglobal-constructors -Wmissing-noreturn )

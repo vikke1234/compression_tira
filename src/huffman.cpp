@@ -101,7 +101,7 @@ extern void huffman_compression(const std::string &filename) {
     frequencies[data[i]]++;
   }
 
-  for (std::uint8_t byte = 0; byte < UCHAR_MAX; byte++) {
+  for (int byte = 0; byte < UCHAR_MAX+1; byte++) {
     if (frequencies[byte] != 0) {
       Node *node = new Node(byte, frequencies[byte]);
       heap.insert(node);
@@ -119,11 +119,12 @@ extern void huffman_compression(const std::string &filename) {
     heap.insert(root);
   }
 
-  root = heap.pop();
+  root = heap.top();
 
   bitstring initial_path;
   initial_path.len = 0;
   build_paths(root, paths, initial_path);
+  root->print_tree();
   std::cout << "height: " << root->height() << "\n";
   write_to_file(data, tree_size, file_size, paths, filename);
 
@@ -150,7 +151,7 @@ static void write_to_file(std::uint8_t *data, std::uint16_t tree_size,
   std::cout << "writing to: " << output.tellp() << ", tree size: " << +tree_size
             << "\n";
   output.write((const char *)&tree_size, sizeof(tree_size));
-  for (std::uint8_t i = 0; i < UCHAR_MAX; i++) {
+  for (int i = 0; i < UCHAR_MAX+1; i++) {
     if (paths[i].len != 0) {
       std::cout << "\n";
       output << paths[i];

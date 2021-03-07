@@ -10,6 +10,9 @@ Node *Heap::pop(void) {
 }
 
 void Heap::insert(Node *node) {
+  if (size > NODES_SIZE) {
+    throw std::out_of_range("stack overflow, heap size larger than array capacity");
+  }
   std::uint8_t i = this->size++;
   this->nodes[i] = node;
   while (i && *node < *this->nodes[(i - 1) / 2]) {
@@ -43,4 +46,8 @@ void Heap::heapify(std::uint16_t index) {
       break;
     }
   } while (smallest < this->size);
+}
+
+Node *Heap::top(void) {
+  return this->nodes[0];
 }
