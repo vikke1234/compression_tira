@@ -76,7 +76,10 @@ public:
     array.reset(new_array);
     array_capacity = new_capacity;
   }
-
+  /**
+   * @brief resizes the array to new_size
+   * @param new_size
+   */
   void resize(const std::size_t new_size) {
     if(new_size > this->capacity()) {
       reserve(new_size * 3 / 2);

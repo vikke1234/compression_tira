@@ -180,11 +180,18 @@ bitstring::bitstring(const bitstring &bs)
 
 std::ofstream &operator<<(std::ofstream &stream, const bitstring &bs) {
   std::cout << "table size: " << bs.bits.size() << "\n";
+  auto length = bs.len;
+
   for (std::size_t table = 0; table < bs.bits.size(); table++) {
     /* we want the written  */
     std::uint64_t big_endian = bs.bits[table];
     const unsigned char *bytes = (const unsigned char *)&big_endian;
     stream.write((const char*)bytes, sizeof(big_endian));
+    if (length > BITS_PER_ELEMENT) {
+      length -= BITS_PER_ELEMENT;
+    } else {
+      break;
+    }
   }
   return stream;
 }
@@ -199,9 +206,11 @@ bitstring &bitstring::reverse() {
 
 void bitstring::write_tree_path(std::ofstream &stream) const {
   std::cout << "bitstring length: " << len << "\n";
+
   for (unsigned int i = 0; i < bits.capacity(); i++) {
     auto n = bits[i];
     stream.write((const char *)&n, sizeof(n));
+
   }
 }
 
