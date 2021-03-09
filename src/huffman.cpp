@@ -119,16 +119,16 @@ extern void huffman_compression(const std::string &filename) {
     heap.insert(root);
   }
 
-  root = heap.top();
+  root = heap.peek();
 
   bitstring initial_path;
   initial_path.len = 0;
   build_paths(root, paths, initial_path);
+
   root->print_tree();
   std::cout << "height: " << root->height() << "\n";
   write_to_file(data, tree_size, file_size, paths, filename);
 
-  delete root;
   delete[] data;
 }
 

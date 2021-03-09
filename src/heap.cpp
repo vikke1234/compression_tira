@@ -48,6 +48,6 @@ void Heap::heapify(std::uint16_t index) {
   } while (smallest < this->size);
 }
 
-Node *Heap::top(void) {
+Node *Heap::peek(void) const {
   return this->nodes[0];
 }
