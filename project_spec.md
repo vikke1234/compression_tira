@@ -4,16 +4,21 @@
 Due to the fact that I didn't implement LZ77, I'll be comparing how different
 files compress using the Huffman algorithm.
 
-- Random data
-- Text files
 
 For the executable the `yes` executable was used.
 
+The text file is a small fraction of [this](https://norvig.com/big.txt).
 
-|              | Text Files | Executable |
-|--------------|------------|------------|
-| Uncompressed | 68KB       | 39KB       |
-| Compressed   | 42KB       | 31KB       |
+The picture is from [here](https://pixabay.com/photos/mountain-landscape-mountains-2031539/).
+
+The sound is [Aerosal Can Spray 2](http://www.pachd.com/sounds.html).
+
+|              | Text Files | Executable | Sound | Picture |
+|--------------|------------|------------|-------|---------|
+| Uncompressed | 68KB       | 39KB       | 75KB  | 83KB    |
+| Compressed   | 42KB       | 31KB       | 63KB  | 92KB    |
+
+The picture doesn't get compressed due to the fact that the path for the bytes in the tree is larger than 8 bits.
 
 # Design
 ## Data structures
