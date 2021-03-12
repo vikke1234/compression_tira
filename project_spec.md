@@ -13,13 +13,20 @@ The picture is from [here](https://pixabay.com/photos/mountain-landscape-mountai
 
 The sound is [Aerosal Can Spray 2](http://www.pachd.com/sounds.html).
 
-|              | Text Files | Executable | Sound | Picture |
-|--------------|------------|------------|-------|---------|
-| Uncompressed | 68KB       | 39KB       | 75KB  | 83KB    |
-| Compressed   | 42KB       | 31KB       | 63KB  | 92KB    |
+|            | Uncompressed | Compressed |
+|------------|--------------|------------|
+| Text Files | 7.7KB        | 13KB       |
+| Text Files | 31KB         | 21KB       |
+| Text Files | 68KB         | 42KB       |
+| Text Files | 148KB        | 87KB       |
+| Executable | 39KB         | 31KB       |
+| Executable | 63KB         | 54KB       |
+| Sound      | 75KB         | 63KB       |
+| Picture    | 83KB         | 92KB       |
 
 The picture doesn't get compressed due to the fact that the path for the bytes in the tree is larger than 8 bits.
 
+At around 10KB it starts to compress worse and worse.
 # Design
 ## Data structures
 - Trees (Huffman)
