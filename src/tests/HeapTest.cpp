@@ -96,7 +96,7 @@ TEST_CASE("Vectors", "[vector]") {
 TEST_CASE("Bitstrings", "[bitstring]") {
   SECTION("initializing") {
     bitstring bs;
-    bitstring bs2{0x1llu};
+    bitstring bs2(0x1);
     bitstring bs3(0xa);
     INFO("bs: " << bs);
     for (int i = 0; i < 255; ++i) {
@@ -104,9 +104,7 @@ TEST_CASE("Bitstrings", "[bitstring]") {
       REQUIRE(bs.get_bit(i) == 0);
     }
 
-
     REQUIRE(bs2.get_bit(0) == 1);
-
     REQUIRE(bs3.get_bit(0) == 0);
     REQUIRE(bs3.get_bit(1) == 1);
   }
@@ -132,30 +130,29 @@ TEST_CASE("Bitstrings", "[bitstring]") {
     REQUIRE(start == assign_to);
   }
   SECTION("comparing") {
-    bitstring bs1{0xaa}, bs2{0xaa}, bs3{0xab}, bs4{0llu, 0x0000ffffllu},
-        bs5{0llu, 0x0000ffffllu};
+    std::uint8_t ptr[] = {0x0, 0xf};
+    bitstring bs(ptr, 2);
+    bitstring equal(ptr, 2);
+    bitstring not_equal(0xde);
 
-    REQUIRE(bs1 == bs2);
-    REQUIRE(bs2 != bs3);
-    REQUIRE(bs4 == bs5);
+    REQUIRE(bs == equal);
+    REQUIRE(bs != not_equal);
   }
 
   SECTION("shifting left") {
     bitstring start_value{0xaa};
-    bitstring end_result{0xaa00};
+    std::uint8_t initial_val[] = {0x0, 0xaa};
+    bitstring end_result(initial_val, 2);
     bitstring new_value;
     new_value = start_value << 8;
     REQUIRE(end_result == new_value);
   }
 
-  SECTION("shifting right") {
-    bitstring bs{0xaa00}, compare_to{0xaa};
-    REQUIRE((bs >> 8) == compare_to);
-  }
 
   SECTION("large shift left") {
-    bitstring bs{0xff}, compare_to{0llu, 0xff};
-    bitstring result = bs << 64;
+    std::uint8_t endresult[] = {0llu, 0xff};
+    bitstring bs{0xff}, compare_to(endresult, 2);
+    bitstring result = bs << 8;
     REQUIRE(result == compare_to);
   }
 
@@ -178,28 +175,20 @@ TEST_CASE("Bitstrings", "[bitstring]") {
   }
 
   SECTION("complex encoding") {
+    std::uint8_t end_resultptr[] = {0xff, 0xff, 0xa};
     bitstring start(0);
-    bitstring append(0xf);
-    bitstring end_result{0xa000'0000'0000'000fllu, 0xa};
+    bitstring append(0xff);
     bitstring last(0xa);
+    bitstring end_result{end_resultptr, 3};
+
     start.len = 0;
-    append.len = 60;
+    append.len = 8;
     last.len = 4;
 
     start.encode(append);
-    start.encode(last);
+    start.encode(append);
     start.encode(last);
     end_result.len = start.len;
-    REQUIRE(start == end_result);
-  }
-
-  SECTION("complex uneven encoding") {
-    bitstring start(0, 0), append(0x7, 3), end_result{ULLONG_MAX, 0x3};
-
-    /* 22 * 3 = 66, 0x7 = 111 */
-    for (int i = 0; i < 22; i++) {
-      start.encode(append);
-    }
     REQUIRE(start == end_result);
   }
 }
