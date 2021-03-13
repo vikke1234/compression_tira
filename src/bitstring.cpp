@@ -81,12 +81,12 @@ bitstring &bitstring::operator<<=(const int i) {
   } else {
     for (int table = bits.size(); table >= 0; table--) {
       if (table > 0) {
-        std::uint64_t spared_bits = (bits[table - 1] >> (BITS_PER_ELEMENT - actual_shift));
-        std::uint64_t shifted_bits = (bits[table] << actual_shift);
-        std::uint64_t result = shifted_bits | spared_bits;
+        std::uint8_t spared_bits = (bits[table - 1] >> (BITS_PER_ELEMENT - actual_shift));
+        std::uint8_t shifted_bits = (bits[table] << actual_shift);
+        std::uint8_t result = shifted_bits | spared_bits;
         bits[table + offset_table] = result;
       } else {
-        std::uint64_t result = bits[table] << actual_shift;
+        std::uint8_t result = bits[table] << actual_shift;
         bits[table + offset_table] = result;
       }
     }
@@ -162,15 +162,16 @@ bitstring::bitstring() {
   bits.push_back(0);
 }
 
-bitstring::bitstring(std::initializer_list<std::uint64_t> list) : bits(4) {
-  for (auto n : list) {
-    bits.push_back(n);
+/* 256 is because max path is 256 */
+bitstring::bitstring(const std::uint8_t *bytes, const std::size_t len) : bits(256 / BITS_PER_ELEMENT) {
+  for (int i = 0; i < len; i++) {
+    bits.push_back(bytes[i]);
   }
 }
 
-bitstring::bitstring(const std::uint64_t n) : bits(4) { bits.push_back(n); }
+bitstring::bitstring(const std::uint8_t n) : bits(4) { bits.push_back(n); }
 
-bitstring::bitstring(const std::uint64_t n, const std::uint32_t len) : bits(4) {
+bitstring::bitstring(const std::uint8_t n, const std::uint32_t len) : bits(4) {
   bits.push_back(n);
   this->len = len;
 }
@@ -184,7 +185,7 @@ std::ofstream &operator<<(std::ofstream &stream, const bitstring &bs) {
 
   for (std::size_t table = 0; table < bs.bits.size(); table++) {
     /* we want the written  */
-    std::uint64_t big_endian = bs.bits[table];
+    std::uint8_t big_endian = bs.bits[table];
     const unsigned char *bytes = (const unsigned char *)&big_endian;
     stream.write((const char*)bytes, sizeof(big_endian));
     if (length > BITS_PER_ELEMENT) {
@@ -197,7 +198,8 @@ std::ofstream &operator<<(std::ofstream &stream, const bitstring &bs) {
 }
 
 bitstring &bitstring::reverse() {
-  vec<std::uint64_t> reversed(bits.size());
+  throw std::logic_error("reverse not implemented");
+  vec<std::uint8_t> reversed(bits.size());
   for (unsigned int i = 0; i < bits.size(); i++) {
     reversed[bits.size() - i] = __bswap_64(bits[i]);
   }
@@ -207,7 +209,7 @@ bitstring &bitstring::reverse() {
 void bitstring::write_tree_path(std::ofstream &stream) const {
   std::cout << "bitstring length: " << len << "\n";
 
-  for (unsigned int i = 0; i < bits.capacity(); i++) {
+  for (unsigned int i = 0; i < this->len / BITS_PER_ELEMENT + 1; i++) {
     auto n = bits[i];
     stream.write((const char *)&n, sizeof(n));
 

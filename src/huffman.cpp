@@ -4,6 +4,7 @@
 #include <climits>
 #include <cstdio>
 #include <filesystem>
+#include <initializer_list>
 #include <iostream>
 #include <limits>
 #include <stdlib.h>
@@ -157,7 +158,6 @@ static void write_to_file(std::uint8_t *data, std::uint16_t tree_size,
       output << paths[i];
     }
   }
-
   bitstring compressed_data;
   compressed_data.len = 0;
   std::cout << "encoding paths\n";
@@ -206,10 +206,11 @@ extern void huffman_decompress(const std::string &filename) {
     to_read = sizeof(paths[i].len);
     stream.read((char *)&paths[i].len, sizeof(paths[i].len));
 
-    std::uint64_t p[4] = {0};
-    to_read = sizeof(p);
+    /* this should be made better */
+    std::uint8_t p[32] = {0};
+    to_read = paths[i].len / (sizeof(*p) * CHAR_BIT) + 1;
     stream.read((char *)p, to_read);
-    bitstring bs{p[0], p[1], p[2], p[3]}; // shit tier code
+    bitstring bs(p, to_read); // shit tier code
 
     paths[i].path = bs;
     std::cout << "Read byte: 0x" << +paths[i].character

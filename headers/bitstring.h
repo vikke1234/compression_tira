@@ -8,11 +8,11 @@
 #include <fstream>
 #include <iostream>
 
-constexpr std::uint8_t BITS_PER_ELEMENT = sizeof(std::uint64_t) * CHAR_BIT;
+constexpr std::uint8_t BITS_PER_ELEMENT = CHAR_BIT;
 
 class bitstring {
   std::int8_t bits_left = BITS_PER_ELEMENT;
-  vec<std::uint64_t> bits = vec<std::uint64_t>(4);
+  vec<std::uint8_t> bits = vec<std::uint8_t>(32);
 
 public:
   /**
@@ -26,16 +26,16 @@ public:
 
   /* TODO: add a list initializer for uint8_t? */
 
-  bitstring(std::initializer_list<std::uint64_t> list);
+  bitstring(const std::uint8_t *bytes, const std::size_t len);
 
   bitstring(const bitstring &bs);
 
   /**
    * @brief make a bitstring out of a number
    */
-  bitstring(const std::uint64_t n);
+  bitstring(const std::uint8_t n);
 
-  bitstring(const std::uint64_t n, const std::uint32_t len);
+  bitstring(const std::uint8_t n, const std::uint32_t len);
 
   /**
    @brief gets the bits at index i
