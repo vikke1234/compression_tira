@@ -35,6 +35,7 @@ Decompression
 The filename after compression will be `output`
 
 [Project specification](project_spec.md)
+[Implementation details](implementation_deatils.md)
 
 ## Weekly reports
 [Week 1](weekly_reports/week1.md)

@@ -4,29 +4,6 @@
 Due to the fact that I didn't implement LZ77, I'll be comparing how different
 files compress using the Huffman algorithm.
 
-
-For the executable the `yes` executable was used.
-
-The text file is a small fraction of [this](https://norvig.com/big.txt).
-
-The picture is from [here](https://pixabay.com/photos/mountain-landscape-mountains-2031539/).
-
-The sound is [Aerosal Can Spray 2](http://www.pachd.com/sounds.html).
-
-|            | Uncompressed | Compressed |
-|------------|--------------|------------|
-| Text Files | 7.7KB        | 13KB       |
-| Text Files | 31KB         | 21KB       |
-| Text Files | 68KB         | 42KB       |
-| Text Files | 148KB        | 87KB       |
-| Executable | 39KB         | 31KB       |
-| Executable | 63KB         | 54KB       |
-| Sound      | 75KB         | 63KB       |
-| Picture    | 83KB         | 92KB       |
-
-The picture doesn't get compressed due to the fact that the path for the bytes in the tree is larger than 8 bits.
-
-At around 10KB it starts to compress worse and worse.
 # Design
 ## Data structures
 - Trees (Huffman)
@@ -36,6 +13,7 @@ At around 10KB it starts to compress worse and worse.
 ## What could be made better
 - The bitstring encoding could probably be made into O(n) though I'm not sure how
 - Threading could be added for the compression
+- Use of uint8 instead of uint64 in the bitstring implementation, not sure why I it this way.
 
 ## Time complexities
 [Huffman encoding](https://en.wikipedia.org/wiki/Huffman_coding) is roughly 
